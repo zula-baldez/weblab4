@@ -1,9 +1,9 @@
 package com.example.lab4.controller;
 
-import com.example.lab4.model.DbController;
+import com.example.lab4.model.UsersDbController;
 import com.example.lab4.model.User;
 import com.example.lab4.util.HashCoder;
-import com.example.lab4.util.LoginDataRequest;
+import com.example.lab4.util.LoginDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpStatus;
@@ -13,42 +13,45 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.util.Objects;
 import java.util.Optional;
 
 @Controller
 @ComponentScan
 public class RegistrationAndLoginController {
     @Autowired
-    private DbController dbController;
+    private UsersDbController usersDbController;
     @Autowired
     private HashCoder hashCoder;
-    @PostMapping("/try_login")
-    @CrossOrigin
-    public ResponseEntity<String> tryLogin(@RequestBody LoginDataRequest loginDataRequest) {
-        Optional<User> userOpt = dbController.findByLogin(loginDataRequest.login());
+
+    public ResponseEntity<String> checkLogin(LoginDTO loginDTO) {
+        Optional<User> userOpt = usersDbController.findByLogin(loginDTO.getLogin());
         if(userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        if((hashCoder.hash(loginDataRequest.password()).equals(userOpt.get().getPassword()))) {
+        if((hashCoder.hash(loginDTO.getPassword()).equals(userOpt.get().getPassword()))) {
             return new ResponseEntity<String>(HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
     }
+
+
+    @PostMapping("/try_login")
+    @CrossOrigin
+    public ResponseEntity<String> tryLogin(@RequestBody LoginDTO loginDTO) {
+        return checkLogin(loginDTO);
+    }
     @PostMapping("/try_register")
     @CrossOrigin
-    public ResponseEntity<String> tryRegister(@RequestBody LoginDataRequest loginDataRequest) {
+    public ResponseEntity<String> tryRegister(@RequestBody LoginDTO loginDTO) {
 
-        Optional<User> userOpt = dbController.findByLogin(loginDataRequest.login());
-        if(userOpt.isPresent() || loginDataRequest.login() == null || loginDataRequest.password() == null) {
+        Optional<User> userOpt = usersDbController.findByLogin(loginDTO.getLogin());
+        if(userOpt.isPresent() || loginDTO.getLogin() == null || loginDTO.getPassword() == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-
         }
         User user = new User();
-        user.setLogin(loginDataRequest.login());
-        user.setPassword(hashCoder.hash(loginDataRequest.password()));
-        dbController.save(user);
+        user.setLogin(loginDTO.getLogin());
+        user.setPassword(hashCoder.hash(loginDTO.getPassword()));
+        usersDbController.save(user);
         return new ResponseEntity<>(HttpStatus.OK);
-
     }
 }
