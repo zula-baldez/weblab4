@@ -5,18 +5,16 @@ import lombok.Getter;
 import lombok.Setter;
 @Entity
 @Table(name="USERS")
+@Getter
+@Setter
 public class User {
-    @Getter
-    @Setter
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column
     private Long userId;
     @Column
-    @Getter
-    @Setter
     private String login;
     @Column
-    @Getter
-    @Setter
     private String password;
 }

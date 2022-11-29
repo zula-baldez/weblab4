@@ -23,12 +23,12 @@ public class RegistrationAndLoginController {
     @Autowired
     private HashCoder hashCoder;
 
-    public ResponseEntity<String> checkLogin(LoginDTO loginDTO) {
-        Optional<User> userOpt = usersDbController.findByLogin(loginDTO.getLogin());
+    public ResponseEntity<String> checkLogin(String login, String password) {
+        Optional<User> userOpt = usersDbController.findByLogin(login);
         if(userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        if((hashCoder.hash(loginDTO.getPassword()).equals(userOpt.get().getPassword()))) {
+        if((hashCoder.hash(password).equals(userOpt.get().getPassword()))) {
             return new ResponseEntity<String>(HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
@@ -38,7 +38,7 @@ public class RegistrationAndLoginController {
     @PostMapping("/try_login")
     @CrossOrigin
     public ResponseEntity<String> tryLogin(@RequestBody LoginDTO loginDTO) {
-        return checkLogin(loginDTO);
+        return checkLogin(loginDTO.getLogin(), loginDTO.getPassword());
     }
     @PostMapping("/try_register")
     @CrossOrigin
