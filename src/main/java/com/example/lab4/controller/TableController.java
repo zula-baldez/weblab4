@@ -4,11 +4,12 @@ import com.example.lab4.model.Attempt;
 import com.example.lab4.model.AttemptDbController;
 import com.example.lab4.model.UsersDbController;
 import com.example.lab4.util.AttemptDTO;
-import com.example.lab4.util.HashCoder;
-import com.example.lab4.util.LoginDTO;
-import com.example.lab4.util.TableData;
+import com.example.lab4.util.GetTableAnsDTO;
+import com.example.lab4.util.GetTableDTO;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -24,41 +25,66 @@ public class TableController {
     private UsersDbController usersDbController;
     @Autowired
     private AttemptDbController attemptDbController;
-    @Autowired
-    private HashCoder hashCoder;
-    @Autowired
-    private RegistrationAndLoginController registrationAndLoginController;
+
 
     @PostMapping("/get_table_data")
     @CrossOrigin
-    public ResponseEntity<String> getTableData(@RequestBody LoginDTO loginDTO) {
-        ResponseEntity<String> response = registrationAndLoginController.checkLogin(loginDTO.getLogin(), loginDTO.getPassword());
-        if(response.getStatusCode() == HttpStatus.OK) {
-            List<Attempt> attemptList = ( List<Attempt> ) attemptDbController.findAll();
+    public ResponseEntity<String> getTableData(@RequestBody GetTableDTO getTableDTO) {
 
-            Gson gson = new Gson();
-            System.out.println(gson.toJson(attemptList.toArray()));
-            return new ResponseEntity<>(gson.toJson(attemptList.toArray()), HttpStatus.OK);
+        long id = usersDbController.findByLogin(getTableDTO.getLogin()).get().getUserId();
+        long size = attemptDbController.countByAuthorIdEquals(id);
+
+        if (getTableDTO.getPage() < 0) {
+            getTableDTO.setPage((int) ((size - 1) / getTableDTO.getCount()));
         }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        List<Attempt> attemptList = (List<Attempt>) attemptDbController.findAllByAuthorIdEquals(id, PageRequest.of(getTableDTO.getPage(), getTableDTO.getCount(), Sort.by("attempt").ascending()));
+
+        GetTableAnsDTO getTableAnsDTO = new GetTableAnsDTO(attemptList, size);
+        Gson gson = new Gson();
+        return new ResponseEntity<>(gson.toJson(getTableAnsDTO), HttpStatus.OK);
+
     }
+
     @PostMapping("/attempt")
     @CrossOrigin
     public ResponseEntity<String> attempt(@RequestBody AttemptDTO attemptDTO) {
+
         long startTime = System.nanoTime();
         Long startTimeMillis = System.currentTimeMillis();
-        ResponseEntity<String> response = registrationAndLoginController.checkLogin(attemptDTO.getLogin(), attemptDTO.getPassword());
-        if(response.getStatusCode() == HttpStatus.OK) {
-            //todo attempts
-            Attempt attempt = new Attempt();
-            attempt.configAttempt(1 ,attemptDTO.getX(), attemptDTO.getY(), attemptDTO.getR(), true, (- startTime + System.nanoTime())/1000, startTimeMillis);
-            attemptDbController.save(attempt);
-            return new ResponseEntity<>(HttpStatus.OK);
+        long id = usersDbController.findByLogin(attemptDTO.getLogin()).get().getUserId();
+        Attempt last = attemptDbController.findTopByAuthorIdEqualsOrderByAttemptDesc(id);
 
+        int attemptLast;
+        if (last == null) {
+            attemptLast = 1;
+        } else {
+            attemptLast = last.getAttempt() + 1;
         }
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        Attempt attempt = new Attempt();
+        attempt.configAttempt(attemptLast, attemptDTO.getX(), attemptDTO.getY(), attemptDTO.getR(), validateHit(attemptDTO.getX(), attemptDTO.getY(), attemptDTO.getR()),
+                (-startTime + System.nanoTime()) / 1000, startTimeMillis, id);
+        attemptDbController.save(attempt);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+
+
     }
 
 
+    private boolean validateHit(double x, double y, double r) {
+        if (x >= 0 && (x * x + y * y < r * r / 4) && y <= 0) {
+            return true;
+        }
 
+        if ((x <= 0) && (y >= 0) && (y <= r + 2 * x)) {
+            return true;
+        }
+
+        if (x <= 0 && y <= 0 && x >= -r / 2 && y >= -r) {
+            return true;
+        }
+        return false;
+
+    }
 }

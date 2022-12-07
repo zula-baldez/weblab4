@@ -30,10 +30,12 @@ public class Attempt implements Serializable {
     private Long workTime;
     @Column
     private Long startTime;
+    @Column
+    private Long authorId;
 
     public Attempt() {
     }
-    public void configAttempt(int attempt, double x, double y, double r, boolean hit, Long workTime, Long startTime) {
+    public void configAttempt(int attempt, double x, double y, double r, boolean hit, Long workTime, Long startTime, Long authorId) {
         setAttempt(attempt);
         setX(x);
         setY(y);
@@ -41,6 +43,7 @@ public class Attempt implements Serializable {
         setHit(hit);
         setWorkTime(workTime);
         setStartTime(startTime);
+        setAuthorId(authorId);
     }
 
 

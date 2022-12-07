@@ -10,5 +10,4 @@ public class AttemptDTO {
     private double y;
     private double r;
     private String login;
-    private String password;
 }
