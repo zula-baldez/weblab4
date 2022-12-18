@@ -6,8 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 @Repository
-@ComponentScan
-public interface UsersDbController extends CrudRepository<User, Long> {
+public interface UsersRepository extends CrudRepository<User, Long> {
     Optional<User> findByLogin(String login);
 
 }

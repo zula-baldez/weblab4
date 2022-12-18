@@ -5,7 +5,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class JWTDTO {
-    private String access;
+public class RefreshDTO {
     private String refresh;
 }

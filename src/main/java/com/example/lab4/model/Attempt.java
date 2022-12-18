@@ -33,8 +33,6 @@ public class Attempt implements Serializable {
     @Column
     private Long authorId;
 
-    public Attempt() {
-    }
     public void configAttempt(int attempt, double x, double y, double r, boolean hit, Long workTime, Long startTime, Long authorId) {
         setAttempt(attempt);
         setX(x);

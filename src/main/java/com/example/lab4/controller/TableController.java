@@ -1,17 +1,20 @@
 package com.example.lab4.controller;
 
 import com.example.lab4.model.Attempt;
-import com.example.lab4.model.AttemptDbController;
-import com.example.lab4.model.UsersDbController;
+import com.example.lab4.model.AttemptsRepository;
+import com.example.lab4.model.UsersRepository;
+import com.example.lab4.security.UserDetails;
 import com.example.lab4.util.AttemptDTO;
 import com.example.lab4.util.GetTableAnsDTO;
 import com.example.lab4.util.GetTableDTO;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,37 +25,36 @@ import java.util.List;
 @Controller
 public class TableController {
     @Autowired
-    private UsersDbController usersDbController;
-    @Autowired
-    private AttemptDbController attemptDbController;
+    private AttemptsRepository attemptsRepository;
 
-
-    @PostMapping("/get_table_data")
+    @PostMapping("/get-table-data")
     @CrossOrigin
-    public ResponseEntity<String> getTableData(@RequestBody GetTableDTO getTableDTO) {
+    public ResponseEntity<GetTableAnsDTO> getTableData(@RequestBody GetTableDTO getTableDTO, @AuthenticationPrincipal UserDetails user) {
 
-        long id = usersDbController.findByLogin(getTableDTO.getLogin()).get().getUserId();
-        long size = attemptDbController.countByAuthorIdEquals(id);
+        long id = user.getUser().getUserId();
+        long size = attemptsRepository.countByAuthorIdEquals(id);
 
         if (getTableDTO.getPage() < 0) {
             getTableDTO.setPage((int) ((size - 1) / getTableDTO.getCount()));
         }
-        List<Attempt> attemptList = (List<Attempt>) attemptDbController.findAllByAuthorIdEquals(id, PageRequest.of(getTableDTO.getPage(), getTableDTO.getCount(), Sort.by("attempt").ascending()));
+        List<Attempt> attemptList = (List<Attempt>) attemptsRepository.findAllByAuthorIdEquals(id, PageRequest.of(getTableDTO.getPage(), getTableDTO.getCount(), Sort.by("attempt").ascending()));
 
         GetTableAnsDTO getTableAnsDTO = new GetTableAnsDTO(attemptList, size);
-        Gson gson = new Gson();
-        return new ResponseEntity<>(gson.toJson(getTableAnsDTO), HttpStatus.OK);
+
+        return new ResponseEntity<>(getTableAnsDTO, HttpStatus.OK);
 
     }
 
     @PostMapping("/attempt")
     @CrossOrigin
-    public ResponseEntity<String> attempt(@RequestBody AttemptDTO attemptDTO) {
-
+    public ResponseEntity<String> attempt(@RequestBody AttemptDTO attemptDTO, @AuthenticationPrincipal UserDetails user) {
+        if(attemptDTO.getR() <= 0 || attemptDTO.getR() > 3) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
         long startTime = System.nanoTime();
         Long startTimeMillis = System.currentTimeMillis();
-        long id = usersDbController.findByLogin(attemptDTO.getLogin()).get().getUserId();
-        Attempt last = attemptDbController.findTopByAuthorIdEqualsOrderByAttemptDesc(id);
+        long id = user.getUser().getUserId();
+        Attempt last = attemptsRepository.findTopByAuthorIdEqualsOrderByAttemptDesc(id);
 
         int attemptLast;
         if (last == null) {
@@ -64,7 +66,7 @@ public class TableController {
         Attempt attempt = new Attempt();
         attempt.configAttempt(attemptLast, attemptDTO.getX(), attemptDTO.getY(), attemptDTO.getR(), validateHit(attemptDTO.getX(), attemptDTO.getY(), attemptDTO.getR()),
                 (-startTime + System.nanoTime()) / 1000, startTimeMillis, id);
-        attemptDbController.save(attempt);
+        attemptsRepository.save(attempt);
 
         return new ResponseEntity<>(HttpStatus.OK);
 

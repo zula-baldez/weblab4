@@ -8,7 +8,6 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class GetTableDTO {
-    private String login;
     private int count;
     private int page;
 }

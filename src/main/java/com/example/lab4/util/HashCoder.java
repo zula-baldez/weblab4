@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 
 @Component
-@ComponentScan
 public class HashCoder {
     public String hash(String text) {
         return Hashing.sha256()
